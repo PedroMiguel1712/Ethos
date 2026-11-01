@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
@@ -266,25 +265,34 @@ class OcorrenciaServiceTest {
     }
 
     @Test
-    void autorExcluiOcorrenciaNaoLancadaERegistraHistorico() {
-        when(repositorio.findById(idGerado)).thenReturn(Optional.of(ocorrenciaPersistida()));
+    void autorCancelaOcorrenciaNaoLancadaERegistraHistorico() {
+        Ocorrencia ocorrencia = ocorrenciaPersistida();
+        when(repositorio.findById(idGerado)).thenReturn(Optional.of(ocorrencia));
 
         servico.excluir(idGerado);
 
+        assertThat(ocorrencia.getCanceladaEm()).isEqualTo(Instant.now(relogio));
+        assertThat(ocorrencia.getStatusLancamento()).isEqualTo(StatusLancamento.NAO_LANCADA);
         verify(historico).registrar(idGerado, professor.getId(),
-                AcaoHistorico.OCORRENCIA_EXCLUIDA.name(), "excluida");
-        verify(repositorio).delete(any(Ocorrencia.class));
-        verify(repositorio).flush();
+                AcaoHistorico.OCORRENCIA_EXCLUIDA.name(), "cancelada");
+        verify(repositorio, never()).delete(any(Ocorrencia.class));
     }
 
     @Test
-    void exclusaoBloqueadaPeloHistoricoViraConflito() {
-        when(repositorio.findById(idGerado)).thenReturn(Optional.of(ocorrenciaPersistida()));
-        doThrow(new DataIntegrityViolationException("fk historicos")).when(repositorio).flush();
+    void ocorrenciaCanceladaSomeDaBuscaENaoPodeSerAlterada() {
+        Ocorrencia ocorrencia = ocorrenciaPersistida();
+        ocorrencia.cancelar(Instant.now(relogio));
+        when(repositorio.findById(idGerado)).thenReturn(Optional.of(ocorrencia));
 
+        assertThatThrownBy(() -> servico.buscar(idGerado))
+                .isInstanceOf(EntityNotFoundException.class);
+        assertThatThrownBy(() -> servico.atualizar(idGerado, pedidoValido()))
+                .isInstanceOf(ConflitoOcorrenciaException.class)
+                .hasMessageContaining("cancelada");
         assertThatThrownBy(() -> servico.excluir(idGerado))
                 .isInstanceOf(ConflitoOcorrenciaException.class)
-                .hasMessageContaining("historico");
+                .hasMessageContaining("cancelada");
+        verifyNoInteractions(historico);
     }
 
     @Test

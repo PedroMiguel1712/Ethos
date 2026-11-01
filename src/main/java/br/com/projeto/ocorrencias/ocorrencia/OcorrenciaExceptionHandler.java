@@ -1,5 +1,7 @@
 package br.com.projeto.ocorrencias.ocorrencia;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -9,8 +11,10 @@ import br.com.projeto.ocorrencias.config.ErroResposta;
 
 /**
  * Traduz as excecoes deste modulo para o mesmo JSON de erro do restante da API.
+ * Precedencia acima do handler generico, que tambem casa com {@link Exception}.
  */
 @RestControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class OcorrenciaExceptionHandler {
 
     @ExceptionHandler(DadosOcorrenciaInvalidosException.class)

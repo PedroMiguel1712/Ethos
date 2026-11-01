@@ -15,6 +15,7 @@ final class OcorrenciaConsulta {
     static Specification<Ocorrencia> com(FiltroOcorrencia filtro) {
         return (raiz, consulta, cb) -> {
             List<Predicate> predicados = new ArrayList<>();
+            predicados.add(cb.isNull(raiz.get("canceladaEm")));
             if (filtro.turmaId() != null) {
                 predicados.add(cb.equal(raiz.get("turma").get("id"), filtro.turmaId()));
             }
@@ -32,9 +33,6 @@ final class OcorrenciaConsulta {
             }
             if (filtro.dataFim() != null) {
                 predicados.add(cb.lessThanOrEqualTo(raiz.get("data"), filtro.dataFim()));
-            }
-            if (predicados.isEmpty()) {
-                return cb.conjunction();
             }
             return cb.and(predicados.toArray(Predicate[]::new));
         };

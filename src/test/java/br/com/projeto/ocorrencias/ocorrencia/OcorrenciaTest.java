@@ -59,6 +59,46 @@ class OcorrenciaTest {
                 .hasMessage("Ocorrencia ja lancada");
     }
 
+    @Test
+    void cancelarPreencheDataENaoApagaOStatus() {
+        Ocorrencia ocorrencia = nova();
+        Instant quando = Instant.parse("2026-10-30T15:00:00Z");
+
+        ocorrencia.cancelar(quando);
+
+        assertThat(ocorrencia.getCanceladaEm()).isEqualTo(quando);
+        assertThat(ocorrencia.getStatusLancamento()).isEqualTo(StatusLancamento.NAO_LANCADA);
+        assertThatThrownBy(() -> ocorrencia.cancelar(quando))
+                .isInstanceOf(ConflitoOcorrenciaException.class)
+                .hasMessage("Ocorrencia ja cancelada");
+    }
+
+    @Test
+    void lancadaNaoCancela() {
+        Ocorrencia ocorrencia = nova();
+        Usuario coordenacao = usuario("Ana Coordenacao", "coordenacao@escola.com", Role.COORDENACAO);
+        Instant quando = Instant.parse("2026-10-30T15:00:00Z");
+        ocorrencia.lancar(coordenacao, quando);
+
+        assertThatThrownBy(() -> ocorrencia.cancelar(quando))
+                .isInstanceOf(ConflitoOcorrenciaException.class)
+                .hasMessageContaining("lancada");
+        assertThat(ocorrencia.getCanceladaEm()).isNull();
+    }
+
+    @Test
+    void canceladaNaoLanca() {
+        Ocorrencia ocorrencia = nova();
+        Instant quando = Instant.parse("2026-10-30T15:00:00Z");
+        ocorrencia.cancelar(quando);
+
+        assertThatThrownBy(() -> ocorrencia.lancar(
+                usuario("Ana Coordenacao", "coordenacao@escola.com", Role.COORDENACAO), quando))
+                .isInstanceOf(ConflitoOcorrenciaException.class)
+                .hasMessageContaining("cancelada");
+        assertThat(ocorrencia.getStatusLancamento()).isEqualTo(StatusLancamento.NAO_LANCADA);
+    }
+
     private static Ocorrencia nova() {
         Turma turma = new Turma("6A");
         ReflectionTestUtils.setField(turma, "id", UUID.randomUUID());

@@ -30,6 +30,9 @@ import jakarta.persistence.Table;
  * <p>Nasce {@link StatusLancamento#NAO_LANCADA}, sem data nem responsavel de lancamento.
  * Esses dois campos so sao preenchidos juntos em {@link #lancar(Usuario, Instant)},
  * o que espelha o check {@code ck_lancamento} do banco.</p>
+ *
+ * <p>Cancelar preenche {@code cancelada_em} e mantem a linha: {@code historicos}
+ * referencia esta ocorrencia e nao pode ser apagado junto.</p>
  */
 @Entity
 @Table(name = "ocorrencias")
@@ -80,6 +83,9 @@ public class Ocorrencia {
     @Column(name = "criado_em", nullable = false, updatable = false)
     private Instant criadoEm;
 
+    @Column(name = "cancelada_em")
+    private Instant canceladaEm;
+
     protected Ocorrencia() {
         // exigido pelo JPA
     }
@@ -121,6 +127,9 @@ public class Ocorrencia {
      * Marca a ocorrencia como lancada. Data e responsavel sao obrigatorios e gravados juntos.
      */
     public void lancar(Usuario responsavel, Instant quando) {
+        if (canceladaEm != null) {
+            throw new ConflitoOcorrenciaException("Ocorrencia cancelada nao pode ser alterada");
+        }
         if (statusLancamento == StatusLancamento.LANCADA) {
             throw new ConflitoOcorrenciaException("Ocorrencia ja lancada");
         }
@@ -132,7 +141,25 @@ public class Ocorrencia {
         this.responsavelLancamento = responsavel;
     }
 
+    /**
+     * Marca a ocorrencia como cancelada sem remove-la. Data obrigatoria.
+     * Ocorrencia ja lancada ou ja cancelada nao cancela de novo.
+     */
+    public void cancelar(Instant quando) {
+        if (quando == null) {
+            throw new IllegalStateException("Cancelamento exige data");
+        }
+        if (canceladaEm != null) {
+            throw new ConflitoOcorrenciaException("Ocorrencia ja cancelada");
+        }
+        exigirAindaNaoLancada();
+        this.canceladaEm = quando;
+    }
+
     public void exigirAindaNaoLancada() {
+        if (canceladaEm != null) {
+            throw new ConflitoOcorrenciaException("Ocorrencia cancelada nao pode ser alterada");
+        }
         if (statusLancamento == StatusLancamento.LANCADA) {
             throw new ConflitoOcorrenciaException("Ocorrencia lancada nao pode ser alterada nem excluida");
         }
@@ -184,6 +211,10 @@ public class Ocorrencia {
 
     public Instant getCriadoEm() {
         return criadoEm;
+    }
+
+    public Instant getCanceladaEm() {
+        return canceladaEm;
     }
 
     @Override

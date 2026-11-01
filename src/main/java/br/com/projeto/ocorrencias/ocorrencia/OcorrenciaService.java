@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
@@ -27,8 +26,9 @@ import br.com.projeto.ocorrencias.usuario.UsuarioLogado;
 import jakarta.persistence.EntityNotFoundException;
 
 /**
- * Regras de ocorrencia. Criar, lancar, atualizar e excluir registram historico
+ * Regras de ocorrencia. Criar, lancar, atualizar e cancelar registram historico
  * na mesma transacao: se {@link HistoricoService#registrar} falhar, a operacao e desfeita.
+ * Cancelar nao apaga a linha, porque o historico referencia a ocorrencia.
  */
 @Service
 @Transactional(readOnly = true)
@@ -79,7 +79,11 @@ public class OcorrenciaService {
     }
 
     public OcorrenciaResponse buscar(UUID id) {
-        return OcorrenciaResponse.de(carregar(id));
+        Ocorrencia ocorrencia = carregar(id);
+        if (ocorrencia.getCanceladaEm() != null) {
+            throw new EntityNotFoundException("Ocorrencia nao encontrada: " + id);
+        }
+        return OcorrenciaResponse.de(ocorrencia);
     }
 
     public List<OcorrenciaResponse> listar(FiltroOcorrencia filtro) {
@@ -107,19 +111,17 @@ public class OcorrenciaService {
         return OcorrenciaResponse.de(ocorrencia);
     }
 
+    /**
+     * Cancela em vez de apagar. {@code historicos.ocorrencia_id} referencia a linha
+     * e o historico nao pode ser removido, entao {@code DELETE} do banco falharia sempre.
+     */
     @Transactional
     public void excluir(UUID id) {
         Ocorrencia ocorrencia = carregar(id);
         exigirPodeAlterar(ocorrencia);
+        ocorrencia.cancelar(Instant.now(relogio));
         historico.registrar(ocorrencia.getId(), usuarioLogado.id(),
-                AcaoHistorico.OCORRENCIA_EXCLUIDA.name(), "excluida");
-        repositorio.delete(ocorrencia);
-        try {
-            repositorio.flush();
-        } catch (DataIntegrityViolationException excecao) {
-            throw new ConflitoOcorrenciaException(
-                    "Nao foi possivel excluir a ocorrencia porque ela possui historico");
-        }
+                AcaoHistorico.OCORRENCIA_EXCLUIDA.name(), "cancelada");
     }
 
     @Transactional
