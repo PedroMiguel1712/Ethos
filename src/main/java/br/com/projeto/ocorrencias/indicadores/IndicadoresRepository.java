@@ -72,13 +72,15 @@ public class IndicadoresRepository {
 
     private static String onde(LocalDate de, LocalDate ate) {
         List<String> condicoes = new ArrayList<>();
+        // Canceladas (DELETE) saem da listagem e precisam sair das contagens tambem.
+        condicoes.add("o.cancelada_em is null");
         if (de != null) {
             condicoes.add("o.data >= :de");
         }
         if (ate != null) {
             condicoes.add("o.data <= :ate");
         }
-        return condicoes.isEmpty() ? "" : " where " + String.join(" and ", condicoes);
+        return " where " + String.join(" and ", condicoes);
     }
 
     private Query consulta(String sql, LocalDate de, LocalDate ate) {
