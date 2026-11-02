@@ -39,6 +39,7 @@ import jakarta.servlet.http.HttpServletResponse;
  *   <li>POST /ocorrencias apenas PROFESSOR;</li>
  *   <li>leitura, lancamento e historico apenas COORDENACAO;</li>
  *   <li>PUT/DELETE conforme a regra de propriedade aplicada no service do Mateus.</li>
+ *   <li>GET /alunos e /turmas para os dois perfis.</li>
  * </ul>
  */
 @Configuration
@@ -116,6 +117,9 @@ public class SecurityConfig {
 
                         // Indicadores (Bernardo)
                         .requestMatchers(HttpMethod.GET, "/indicadores").hasRole("COORDENACAO")
+
+                        // Consulta de alunos e turmas (busca do professor e filtros da coordenacao)
+                        .requestMatchers(HttpMethod.GET, "/alunos", "/turmas").hasAnyRole("PROFESSOR", "COORDENACAO")
 
                         .anyRequest().authenticated());
 
