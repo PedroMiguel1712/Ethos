@@ -97,11 +97,7 @@ $("#form-login").addEventListener("submit", async e => {
   btn.disabled = true; btn.textContent = "Entrando…";
   try {
     const u = await Api.login(email, senha);
-    if (u.role !== "COORDENACAO") {
-      await Api.logout();
-      mostrarMsg($("#msg-login"), "Esta área é exclusiva da coordenação. Professores registram ocorrências pela área do professor.");
-      return;
-    }
+    if (u.role !== "COORDENACAO") { location.href = "/"; return; }
     ui.usuario = u;
     $("#form-login").reset();
     telaApp();
@@ -214,9 +210,7 @@ async function carregarLista() {
     $("#resultado").textContent = "";
     $("#vazio").hidden = true;
     $("#paginacao").hidden = true;
-    mostrarMsg($("#msg-lista"), e.status === 404
-      ? "A listagem de ocorrências ainda não está disponível na API (GET /ocorrencias)."
-      : e.message);
+    mostrarMsg($("#msg-lista"), e.message);
   } finally {
     if (pedido === ui.pedidoLista) $("#tabela").removeAttribute("aria-busy");
   }
@@ -349,7 +343,7 @@ async function salvarEdicao(form) {
 async function excluir(o) {
   const ok = await confirmar({
     titulo: "Excluir ocorrência?",
-    texto: `A ocorrência de ${o.aluno.nome} (${o.turma}, ${fmtData(o.data)}) será removida da plataforma. Use só para registros feitos por engano.`,
+    texto: `A ocorrência de ${o.aluno.nome} (${o.turma}, ${fmtData(o.data)}) sai da lista, mas o histórico fica guardado. Use só para registros feitos por engano.`,
     botao: "Excluir ocorrência",
     perigo: true
   });
@@ -361,10 +355,12 @@ async function excluir(o) {
     recarregar();
   } catch (e) {
     if (tratarErroGlobal(e)) return;
-    // Hoje o backend recusa toda exclusão (409): ver docs/FRONTEND-COORDENACAO.md.
-    avisar(e.status === 409
-      ? "Esta ocorrência não pode ser excluída porque já tem histórico registrado."
-      : e.message);
+    if (e.status === 409) {
+      avisar("Esta ocorrência não pode mais ser excluída. A lista foi atualizada.");
+      recarregar();
+    } else {
+      avisar(e.message);
+    }
   }
 }
 
@@ -505,10 +501,7 @@ function renderEdicao() {
 (async function iniciar() {
   try {
     const u = await Api.me();
-    if (u.role !== "COORDENACAO") {
-      telaLogin("Você entrou como professor. Esta área é exclusiva da coordenação.");
-      return;
-    }
+    if (u.role !== "COORDENACAO") { location.href = "/"; return; }
     ui.usuario = u;
     telaApp();
   } catch (e) {
