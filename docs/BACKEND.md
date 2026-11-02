@@ -89,6 +89,24 @@ public class OcorrenciaService {
 - `acao` precisa ser o `name()` de uma constante de `AcaoHistorico`; qualquer outro valor lança `IllegalArgumentException`.
 - `detalhes` é opcional (`null` ou em branco vira `null`).
 
+## Alunos e turmas
+
+Consulta para os dois perfis (**PROFESSOR** e **COORDENACAO**). O cadastro vem do banco: a migration `V31__seed_alunos_turmas_dev.sql` cria 11 turmas e 44 alunos **fictícios** para desenvolvimento.
+
+### `GET /alunos?busca=&turma=`
+
+Busca do passo 1 do registro de ocorrência. `busca` é parte do nome (sem diferenciar maiúsculas); `turma` é o nome da turma. Os dois são opcionais.
+
+```json
+[ { "id": "…", "nome": "Ana Clara Souza", "turmaId": "…", "turma": "6A" } ]
+```
+
+### `GET /turmas`
+
+```json
+[ { "id": "…", "nome": "6A" }, { "id": "…", "nome": "6B" } ]
+```
+
 ## Histórico e indicadores (Bernardo)
 
 Ambos exclusivos da **COORDENACAO** (filtro do `SecurityConfig` + `@PreAuthorize`).

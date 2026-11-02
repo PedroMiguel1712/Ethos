@@ -64,15 +64,13 @@ Sem corpo; data e responsável vêm da sessão no backend. Já lançada → 409,
 
 ### `DELETE /ocorrencias/{id}`
 
-Ver o primeiro item de "Pendências" abaixo: hoje sempre responde 409.
+Cancelamento lógico (V10, `cancelada_em`): responde 204, a ocorrência some da listagem e o histórico fica. Já lançada ou já cancelada → 409; a tela avisa e recarrega.
 
 ### `GET /indicadores` e `GET /ocorrencias/{id}/historico`
 
 Usados como estão. Dos indicadores a tela lê só `total`, `naoLancadas` e `lancadas` (os agrupamentos `porTurma`, `porTipo` e `porPeriodo` ficam para os gráficos futuros). No histórico, os textos fixos de `detalhes` gravados pelo service (`"lancada pela coordenacao"`…) não são exibidos, porque repetem a ação.
 
-## Pendências no backend que afetam esta tela
+## Pendências
 
-- **Falta o `OcorrenciaController` (Mateus).** O `OcorrenciaService` está pronto, mas nenhum controller expõe `/ocorrencias`; até ele entrar, a lista mostra "ainda não está disponível na API". Os métodos do service já batem com o que a tela chama: `listar(FiltroOcorrencia)`, `buscar`, `atualizar`, `excluir`, `lancar`.
-- **`DELETE` sempre falha.** `excluir` grava `OCORRENCIA_EXCLUIDA` em `historicos` e apaga a ocorrência, mas `historicos.ocorrencia_id` referencia `ocorrencias(id)`: a FK barra e vira 409. Toda ocorrência tem ao menos o `OCORRENCIA_CRIADA`, então nenhuma pode ser excluída. Sugestão: exclusão lógica (coluna `excluida_em`, migration V10+, e o `GET` filtrando as excluídas). A tela já mostra uma mensagem clara nesse caso.
-- **Sem `GET /turmas` e `GET /alunos`.** Os services existem, mas sem controller. O filtro de turma usa a lista padrão do `api.js` (`TURMAS_PADRAO`); manter igual às turmas do banco.
 - **Desfazer lançamento:** não há endpoint para voltar a `NAO_LANCADA`. A confirmação antes do PATCH reduz cliques por engano.
+- **Filtros de turma e aluno no navegador:** com `GET /turmas` disponível, dá para mandar `turmaId` ao backend em vez de filtrar por nome na tela. Só vale a pena se o volume de ocorrências crescer.
