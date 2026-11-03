@@ -119,6 +119,12 @@ $("#btn-sair").addEventListener("click", async () => {
   telaLogin();
 });
 
+$("#ir-professor").addEventListener("click", async e => {
+  e.preventDefault();
+  try { await Api.logout(); } catch {}
+  location.href = "/";
+});
+
 let filtrosProntos = false;
 async function prepararFiltros() {
   if (filtrosProntos) return;
