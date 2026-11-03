@@ -1,5 +1,5 @@
 /* ===== Configuração ===== */
-const API_URL = "https://ethos-lovat.vercel.app"; // produção: URL do backend no Render
+const API_URL = "https://ethos-api-rpea.onrender.com"; // produção: URL do backend no Render
 const USAR_MOCK_SE_FALHAR = true;        // backend fora do ar NA ABERTURA da página: usa dados de exemplo (desligar no deploy)
 let modoPrevia = false;                  // decidido uma vez, no início; não muda no meio do uso
 
